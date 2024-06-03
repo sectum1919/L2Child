@@ -23,6 +23,8 @@ def analyze_one_word(data):
             print(data)
             print('why this happen?')
             print('*'*200)
+        if target_shengmu == 'y' or target_shengmu == 'w':
+            target_shengmu = '-'
         if target_yunmu == 'ii' or target_yunmu == 'iii':
             target_yunmu = 'i'
         if target_yunmu == 'iou':
@@ -75,11 +77,14 @@ for subjectid, annotations in all_anno_info.items():
     all_valid_infos[subjectid] = {}
     for annotation in annotations:
         all_valid_infos[subjectid][str(annotation['userid'])] = []
-        
+
+examinfo = json.load(open('data/examinfo.json'))
+
 word_count = 0
 char_count = 0
 all_word_count = 0
 all_char_count = 0
+print(len(all_anno_info))
 for subjectid, annotations in all_anno_info.items():
     # word_count = [len(a['anno_res']) for a in annotations]
     # print(word_count)
@@ -100,6 +105,25 @@ for subjectid, annotations in all_anno_info.items():
             if len(list(set(wordlength))) != 1:
                 continue
             if len(list(set(word_targ))) != 1:
+                # print(list(set(word_targ)), word_targ)
+                continue
+            # added at 20240603 use real target phones for target
+            for a in annotations:
+                if word_targ[0] in examinfo['5-阶段五']:
+                    info_correct = examinfo['5-阶段五'][word_targ[0]]
+                elif word_targ[0] in examinfo['6-阶段六']:
+                    info_correct = examinfo['6-阶段六'][word_targ[0]]
+                else:
+                    info_correct = None
+                if info_correct is not None:
+                    a['anno_res'][i]['data']['pyt'] = info_correct['py']
+                    a['anno_res'][i]['data']['pinyin']['correct'] = [
+                        (info_correct['sm'][i] if info_correct['sm'][i] != '零' else info_correct['sm'][i]) + ' ' + info_correct['ym'][i] + ' ' + str(info_correct['sd'][i])
+                        for i in range(wordlength[0])
+                    ]
+            # 新增20240426 
+            phone_targ = ['|'.join(a['anno_res'][i]['data']['pinyin']['correct']) for a in annotations]
+            if len(list(set(phone_targ))) != 1:
                 # print(list(set(word_targ)), word_targ)
                 continue
             # 不需要管孩子是否认识（known）和是否有效（valid）
